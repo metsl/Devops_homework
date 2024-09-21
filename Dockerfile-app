@@ -1,0 +1,13 @@
+# Step 1: Build the application
+FROM gradle:jdk21 AS builder
+WORKDIR /app
+COPY . .
+RUN gradle build --no-daemon --x test
+
+# Step 2: Package the application
+FROM openjdk:21-jdk-slim
+WORKDIR /app
+COPY --from=builder /app/build/libs/*.jar app.jar
+COPY --from=builder /app/build/resources/main/application.properties /app/application.properties
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]

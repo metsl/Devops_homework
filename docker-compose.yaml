@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile-app
+    environment:
+    #Spring Boot's native notations:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/homework
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=postgres
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update #This tells Hibernate to automatically update the database schema.
+      - SPRING_JPA_SHOW_SQL=true #This enables SQL logging for debugging purposes.
+      - SERVER_PORT=8080 #This sets the server port (though it's already the default).
+      - LOGGING_LEVEL_ORG_SPRINGFRAMEWORK=INFO
+      - LOGGING_LEVEL_COM_FLO=DEBUG #These set logging levels for Spring and your application package.
+    depends_on:
+      - db
+    networks:
+      - backend
+  db:
+    image: postgres:14
+    environment:
+      POSTGRES_DB: homework
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - mydata:/var/lib/postgresql/data
+    networks:
+      - backend
+    ports:
+      - "6432:5432"  # Accessible from host only via localhost:6432 (system loopback)
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:9090"  # Expose Nginx to the public on port 80
+    networks:
+      - backend
+      - frontend
+    depends_on:
+      - app
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+
+networks:
+  backend:
+  frontend:
+
+volumes:
+  mydata:
